@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import './seller-panel.css';
+import './view-sales.css';
 
 export default function VerVentas() {
   const [sales, setSales] = useState([]);
@@ -9,12 +9,14 @@ export default function VerVentas() {
     startDate: '',
     endDate: ''
   });
+  const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState('');
   const navigate = useNavigate();
   const token = localStorage.getItem('sellerToken');
 
   const fetchSales = async () => {
     try {
+      setLoading(true);
       const params = {};
       if (filters.startDate) params.startDate = filters.startDate;
       if (filters.endDate) params.endDate = filters.endDate;
@@ -24,8 +26,11 @@ export default function VerVentas() {
         params
       });
       setSales(res.data);
+      setMsg('');
     } catch (error) {
       setMsg('Error al cargar las ventas');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -44,68 +49,147 @@ export default function VerVentas() {
     fetchSales();
   };
 
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      minimumFractionDigits: 0
+    }).format(value);
+  };
+
   return (
-    <div className="sellerpanel-bg">
-      <header className="sellerpanel-header">
-        <span className="sellerpanel-title">Ventas Realizadas</span>
-        <button className="sellerpanel-profile-btn" onClick={() => navigate('/seller/eVentas')}>Volver a Registrar Venta</button>
+    <div className="view-sales-container">
+      <header className="view-sales-header">
+        <h1 className="view-sales-title">
+          <i className="fas fa-chart-line"></i> Ventas Realizadas
+        </h1>
+        <button 
+          className="view-sales-back-button"
+          onClick={() => navigate('/seller/eVentas')}
+        >
+          <i className="fas fa-plus-circle"></i> Registrar Nueva Venta
+        </button>
       </header>
-      <form onSubmit={handleFilterSubmit} className="sellerpanel-form" style={{maxWidth: 600, margin: '1em auto'}}>
-        <div className="sellerpanel-form-title">Filtrar por Fecha</div>
-        <div className="sellerpanel-form-grid" style={{gridTemplateColumns: '1fr 1fr'}}>
-          <div className="sellerpanel-form-field">
-            <label>Fecha inicio</label>
-            <input type="date" name="startDate" value={filters.startDate} onChange={handleFilterChange} />
+
+      <div className="view-sales-content">
+        <form onSubmit={handleFilterSubmit} className="sales-filter-form">
+          <div className="filter-header">
+            <h2><i className="fas fa-filter"></i> Filtros</h2>
+            <p>Seleccione un rango de fechas para filtrar</p>
           </div>
-          <div className="sellerpanel-form-field">
-            <label>Fecha fin</label>
-            <input type="date" name="endDate" value={filters.endDate} onChange={handleFilterChange} />
+
+          <div className="filter-grid">
+            <div className="filter-group">
+              <label>Fecha de inicio</label>
+              <input 
+                type="date" 
+                name="startDate" 
+                value={filters.startDate} 
+                onChange={handleFilterChange} 
+                className="filter-input"
+              />
+            </div>
+
+            <div className="filter-group">
+              <label>Fecha de fin</label>
+              <input 
+                type="date" 
+                name="endDate" 
+                value={filters.endDate} 
+                onChange={handleFilterChange} 
+                className="filter-input"
+              />
+            </div>
           </div>
-        </div>
-        <div className="sellerpanel-form-actions">
-          <button type="submit" className="sellerpanel-btn">Aplicar filtro</button>
-        </div>
-      </form>
-      {msg && <div style={{color: 'red', textAlign: 'center'}}>{msg}</div>}
-      <section className="sellerpanel-client-list" style={{maxWidth: 800, margin: '1em auto'}}>
-        <h2 style={{color:'#10b981',marginBottom:'1em'}}>Lista de Ventas</h2>
-        {sales.length === 0 ? (
-          <div style={{color:'#64748b',padding:'2em', textAlign: 'center'}}>No hay ventas para mostrar.</div>
-        ) : (
-          <table style={{width: '100%', borderCollapse: 'collapse'}}>
-            <thead>
-              <tr style={{backgroundColor: '#10b981', color: 'white'}}>
-                <th style={{padding: '0.5em', border: '1px solid #ddd'}}>Fecha</th>
-                <th style={{padding: '0.5em', border: '1px solid #ddd'}}>Cliente</th>
-                <th style={{padding: '0.5em', border: '1px solid #ddd'}}>Código Vendedor</th>
-                <th style={{padding: '0.5em', border: '1px solid #ddd'}}>Productos</th>
-                <th style={{padding: '0.5em', border: '1px solid #ddd'}}>Cantidad</th>
-                <th style={{padding: '0.5em', border: '1px solid #ddd'}}>Precio Total</th>
-                <th style={{padding: '0.5em', border: '1px solid #ddd'}}>Método de Pago</th>
-                <th style={{padding: '0.5em', border: '1px solid #ddd'}}>Notas</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sales.map(sale => (
-                <tr key={sale._id} style={{borderBottom: '1px solid #ddd'}}>
-                  <td style={{padding: '0.5em', border: '1px solid #ddd'}}>{new Date(sale.createdAt).toLocaleDateString()}</td>
-                  <td style={{padding: '0.5em', border: '1px solid #ddd'}}>{sale.customerName}</td>
-                  <td style={{padding: '0.5em', border: '1px solid #ddd'}}>{sale.sellerCode || 'VENTA DIRECTA'}</td>
-                  <td style={{padding: '0.5em', border: '1px solid #ddd'}}>
-                    {sale.items && sale.items.length > 0 ? sale.items.map(item => item.name).join(', ') : 'N/A'}
-                  </td>
-                  <td style={{padding: '0.5em', border: '1px solid #ddd'}}>
-                    {sale.items && sale.items.length > 0 ? sale.items.reduce((acc, item) => acc + item.quantity, 0) : 'N/A'}
-                  </td>
-                  <td style={{padding: '0.5em', border: '1px solid #ddd'}}>{sale.total}</td>
-                  <td style={{padding: '0.5em', border: '1px solid #ddd'}}>{sale.paymentMethod || '-'}</td>
-                  <td style={{padding: '0.5em', border: '1px solid #ddd'}}>{sale.notes || '-'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
+
+          <div className="filter-actions">
+            <button type="submit" className="filter-button">
+              <i className="fas fa-search"></i> Aplicar Filtros
+            </button>
+            <button 
+              type="button" 
+              className="reset-button"
+              onClick={() => {
+                setFilters({ startDate: '', endDate: '' });
+                fetchSales();
+              }}
+            >
+              <i className="fas fa-undo"></i> Limpiar
+            </button>
+          </div>
+        </form>
+
+        {msg && <div className={`message ${msg.includes('Error') ? 'error' : 'success'}`}>{msg}</div>}
+
+        <section className="sales-list-section">
+          <h2 className="section-title">
+            <i className="fas fa-list-alt"></i> Historial de Ventas
+          </h2>
+
+          {loading ? (
+            <div className="loading-indicator">
+              <i className="fas fa-spinner fa-spin"></i> Cargando ventas...
+            </div>
+          ) : sales.length === 0 ? (
+            <div className="empty-state">
+              <i className="fas fa-box-open"></i>
+              <p>No se encontraron ventas para mostrar</p>
+            </div>
+          ) : (
+            <div className="table-container">
+              <table className="sales-table">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Cliente</th>
+                    <th>Vendedor</th>
+                    <th>Productos</th>
+                    <th>Cantidad</th>
+                    <th>Total</th>
+                    <th>Pago</th>
+                    <th>Notas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sales.map(sale => (
+                    <tr key={sale._id}>
+                      <td>{new Date(sale.createdAt).toLocaleDateString('es-CO')}</td>
+                      <td>{sale.customerName || 'Cliente no especificado'}</td>
+                      <td>{sale.sellerCode || 'VENTA DIRECTA'}</td>
+                      <td>
+                        {sale.items && sale.items.length > 0 
+                          ? sale.items.map(item => item.name).join(', ') 
+                          : sale.products || 'N/A'}
+                      </td>
+                      <td>
+                        {sale.items && sale.items.length > 0 
+                          ? sale.items.reduce((acc, item) => acc + (item.quantity || 0), 0) 
+                          : sale.quantity || 'N/A'}
+                      </td>
+                      <td>{formatCurrency(sale.total)}</td>
+                      <td>
+                        <span className={`payment-method ${sale.paymentMethod?.toLowerCase() || 'other'}`}>
+                          {sale.paymentMethod || '-'}
+                        </span>
+                      </td>
+                      <td className="notes-cell">
+                        {sale.notes ? (
+                          <div className="notes-tooltip">
+                            {sale.notes.length > 15 
+                              ? `${sale.notes.substring(0, 15)}...` 
+                              : sale.notes}
+                            <span className="tooltip-text">{sale.notes}</span>
+                          </div>
+                        ) : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

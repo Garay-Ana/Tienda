@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
   customerName: { type: String, required: true },
-  customerEmail: { type: String, required: true },
+  customerEmail: { type: String, required: false },
   address: { type: String, required: true },
   items: [
     {
@@ -13,6 +13,8 @@ const orderSchema = new mongoose.Schema({
     }
   ],
   total: { type: Number, required: true },
+  paymentMethod: { type: String },
+  notes: { type: String },
   status: { type: String, enum: ['pendiente', 'pagado', 'enviado', 'entregado', 'cancelado'], default: 'pendiente' },
   createdAt: { type: Date, default: Date.now },
   seller: { type: mongoose.Schema.Types.ObjectId, ref: 'Seller' }, // Referencia opcional al vendedor

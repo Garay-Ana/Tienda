@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import './seller-panel.css';
+import './client-detail.css';
 
 export default function ClientDetail() {
   const [client, setClient] = useState(null);
-  const [msg, setMsg] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
   const token = localStorage.getItem('sellerToken');
 
@@ -16,33 +17,115 @@ export default function ClientDetail() {
 
   const fetchClient = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/sellers/client/${window.location.pathname.split('/').pop()}`, { headers: { Authorization: `Bearer ${token}` } });
+      setLoading(true);
+      const clientId = window.location.pathname.split('/').pop();
+      const res = await axios.get(
+        `http://localhost:5000/api/sellers/client/${clientId}`, 
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       setClient(res.data);
-    } catch {
-      setMsg('No se pudo cargar la persona');
+      setError('');
+    } catch (err) {
+      setError('No se pudo cargar la información del cliente');
+      console.error('Error fetching client:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (!client) return <div className="sellerpanel-bg"><div style={{padding:'2em',textAlign:'center'}}>Cargando persona...</div></div>;
+  const handleBack = () => {
+    navigate('/seller/panel');
+  };
+
+  if (loading) {
+    return (
+      <div className="client-detail-loading">
+        <div className="loading-spinner"></div>
+        <p>Cargando información del cliente...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="client-detail-error">
+        <i className="fas fa-exclamation-triangle"></i>
+        <p>{error}</p>
+        <button className="back-button" onClick={handleBack}>
+          Volver al panel
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="sellerpanel-bg">
-      <header className="sellerpanel-header">
-        <span className="sellerpanel-title">Detalle de Persona</span>
-        <button className="sellerpanel-profile-btn" onClick={() => navigate('/seller/panel')}>Volver al panel</button>
+    <div className="client-detail-container">
+      <header className="client-detail-header">
+        <h1 className="client-detail-title">
+          <i className="fas fa-user-tag"></i> Detalle del Cliente
+        </h1>
+        <button 
+          className="back-button"
+          onClick={handleBack}
+        >
+          <i className="fas fa-arrow-left"></i> Volver al Panel
+        </button>
       </header>
-      <div className="sellerpanel-dashboard" style={{flexDirection:'column',gap:'2em',maxWidth:500}}>
-        <div style={{textAlign:'center'}}>
-          <div style={{fontSize:'2.2rem',fontWeight:800,color:'#10b981',marginBottom:'0.2em'}}>{client.name}</div>
-          <div style={{color:'#6366f1',fontWeight:600,marginBottom:'0.5em'}}>Zona: {client.zone}</div>
-          <div style={{color:'#64748b',marginBottom:'0.5em'}}>Código: {client.code || 'No asignado'}</div>
-          <div style={{color:'#64748b',marginBottom:'0.5em'}}>Contacto: {client.contact}</div>
-          <div style={{color:'#64748b',marginBottom:'0.5em'}}>Dirección: {client.address}</div>
-          <div style={{color:'#64748b',marginBottom:'0.5em'}}>Notas: {client.notes}</div>
-          <div className="sellerpanel-actions">
-            {/* Botones de Editar y Pedir por WhatsApp eliminados según solicitud */}
+
+      <div className="client-detail-content">
+        {client && (
+          <div className="client-card">
+            <div className="client-avatar">
+              <i className="fas fa-user"></i>
+            </div>
+            
+            <div className="client-info">
+              <h2 className="client-name">{client.name}</h2>
+              
+              <div className="client-detail">
+                <i className="fas fa-map-marked-alt"></i>
+                <div>
+                  <span className="detail-label">Zona:</span>
+                  <span>{client.zone || 'No especificada'}</span>
+                </div>
+              </div>
+              
+              <div className="client-detail">
+                <i className="fas fa-id-card"></i>
+                <div>
+                  <span className="detail-label">Código:</span>
+                  <span>{client.code || 'No asignado'}</span>
+                </div>
+              </div>
+              
+              <div className="client-detail">
+                <i className="fas fa-phone-alt"></i>
+                <div>
+                  <span className="detail-label">Contacto:</span>
+                  <span>{client.contact || 'No especificado'}</span>
+                </div>
+              </div>
+              
+              <div className="client-detail">
+                <i className="fas fa-map-marker-alt"></i>
+                <div>
+                  <span className="detail-label">Dirección:</span>
+                  <span>{client.address || 'No especificada'}</span>
+                </div>
+              </div>
+              
+              {client.notes && (
+                <div className="client-notes">
+                  <i className="fas fa-sticky-note"></i>
+                  <div>
+                    <span className="detail-label">Notas:</span>
+                    <p>{client.notes}</p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
